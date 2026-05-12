@@ -1,0 +1,112 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() { return request.auth != null; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.keys().hasAll(['email', 'name', 'role', 'createdAt', 'updatedAt']) &&
+               data.email is string && data.email.size() <= 200 &&
+               data.name is string && data.name.size() <= 100 &&
+               data.role is string && data.role in ['student', 'teacher', 'admin'] &&
+               data.createdAt == request.time &&
+               data.updatedAt == request.time;
+      }
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming());
+      allow update: if isSignedIn() && request.auth.uid == userId &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'updatedAt']) &&
+                    incoming().name is string && incoming().name.size() <= 100 &&
+                    incoming().updatedAt == request.time;
+    }
+
+    match /experiments/{experimentId} {
+      function isValidExperiment(data) {
+        return data.keys().hasAll(['title', 'description', 'category', 'createdBy', 'status', 'createdAt', 'updatedAt']) &&
+               data.title is string && data.title.size() <= 200 &&
+               data.description is string && data.description.size() <= 5000 &&
+               data.category is string && data.category.size() <= 100 &&
+               data.createdBy is string && data.createdBy == request.auth.uid &&
+               data.status is string && data.status in ['draft', 'published'] &&
+               data.createdAt == request.time &&
+               data.updatedAt == request.time;
+      }
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidExperiment(incoming());
+      allow update: if isSignedIn() && existing().createdBy == request.auth.uid &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'category', 'status', 'updatedAt']) &&
+                    incoming().title is string && incoming().title.size() <= 200 &&
+                    incoming().description is string && incoming().description.size() <= 5000 &&
+                    incoming().category is string && incoming().category.size() <= 100 &&
+                    incoming().status is string && incoming().status in ['draft', 'published'] &&
+                    incoming().updatedAt == request.time;
+      allow delete: if isSignedIn() && existing().createdBy == request.auth.uid;
+    }
+
+    match /sessions/{sessionId} {
+      function isValidSession(data) {
+        return data.keys().hasAll(['userId', 'experimentId', 'status', 'progress', 'createdAt', 'updatedAt']) &&
+               data.userId is string && data.userId == request.auth.uid &&
+               data.experimentId is string && data.experimentId.size() <= 128 &&
+               data.status is string && data.status in ['active', 'completed'] &&
+               data.progress is number &&
+               data.createdAt == request.time &&
+               data.updatedAt == request.time &&
+               exists(/databases/$(database)/documents/experiments/$(data.experimentId));
+      }
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidSession(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['status', 'progress', 'updatedAt']) &&
+                    incoming().status is string && incoming().status in ['active', 'completed'] &&
+                    incoming().progress is number &&
+                    incoming().updatedAt == request.time;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /quizResults/{resultId} {
+      function isValidQuizResult(data) {
+        return data.keys().hasAll(['userId', 'experimentId', 'score', 'maxScore', 'completedAt']) &&
+               data.userId is string && data.userId == request.auth.uid &&
+               data.experimentId is string && data.experimentId.size() <= 128 &&
+               data.score is number &&
+               data.maxScore is number &&
+               data.completedAt == request.time &&
+               exists(/databases/$(database)/documents/experiments/$(data.experimentId));
+      }
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidQuizResult(incoming());
+    }
+
+    match /forumPosts/{postId} {
+      function isValidForumPost(data) {
+        return data.keys().hasAll(['userId', 'title', 'content', 'category', 'createdAt', 'updatedAt']) &&
+               data.userId is string && data.userId == request.auth.uid &&
+               data.title is string && data.title.size() <= 200 &&
+               data.content is string && data.content.size() <= 5000 &&
+               data.category is string && data.category.size() <= 100 &&
+               data.createdAt == request.time &&
+               data.updatedAt == request.time;
+      }
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidForumPost(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content', 'category', 'updatedAt']) &&
+                    incoming().title is string && incoming().title.size() <= 200 &&
+                    incoming().content is string && incoming().content.size() <= 5000 &&
+                    incoming().category is string && incoming().category.size() <= 100 &&
+                    incoming().updatedAt == request.time;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}

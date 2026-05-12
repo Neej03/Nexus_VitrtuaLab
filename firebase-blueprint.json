@@ -1,0 +1,95 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile containing basic info and role.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "teacher", "admin"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["email", "name", "role", "createdAt", "updatedAt"]
+    },
+    "Experiment": {
+      "title": "Experiment",
+      "description": "Experiment configuration",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["title", "description", "category", "createdBy", "status", "createdAt", "updatedAt"]
+    },
+    "Session": {
+       "title": "Session",
+       "description": "User's lab session and progress",
+       "type": "object",
+       "properties": {
+          "userId": { "type": "string" },
+          "experimentId": { "type": "string" },
+          "status": { "type": "string" },
+          "progress": { "type": "number" },
+          "createdAt": { "type": "string" },
+          "updatedAt": { "type": "string" }
+       },
+       "required": ["userId", "experimentId", "status", "progress", "createdAt", "updatedAt"]
+    },
+    "QuizResult": {
+      "title": "Quiz Result",
+      "description": "User's quiz performance",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "experimentId": { "type": "string" },
+        "score": { "type": "number" },
+        "maxScore": { "type": "number" },
+        "completedAt": { "type": "string" }
+      },
+      "required": ["userId", "experimentId", "score", "maxScore", "completedAt"]
+    },
+    "ForumPost": {
+      "title": "Forum Post",
+      "description": "Community discussion posts",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "category": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "title", "content", "category", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Store user profiles"
+    },
+    "experiments/{experimentId}": {
+       "schema": { "$ref": "#/entities/Experiment" },
+       "description": "Store available experiments"
+    },
+    "sessions/{sessionId}": {
+       "schema": { "$ref": "#/entities/Session" },
+       "description": "Store live lab progress"
+    },
+    "quizResults/{resultId}": {
+       "schema": { "$ref": "#/entities/QuizResult" },
+       "description": "Store user quiz scores"
+    },
+    "forumPosts/{postId}": {
+       "schema": { "$ref": "#/entities/ForumPost" },
+       "description": "Store forum discussion topics"
+    }
+  }
+}
